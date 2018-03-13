@@ -132,8 +132,9 @@ move_data_from_container(){
 }
 
 restore_previous_state(){
-if [ -e /var/etc/kerio/operator/pdenabled ]; then
+if [[ -e /var/etc/kerio/operator/pdenabled ]]; then
     mount /dev/mapper/luks /var/personal_data/kerio/operator/
+fi
 }
 
 stop_service(){
