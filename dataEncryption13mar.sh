@@ -1,14 +1,16 @@
 #!/bin/bash
 
-. util.sh
+#. util.sh
 
 manageResourceForEncryption(){
     #start encryption
     status="work in progress"
+
+    echo  "" > /tmp/manageResourceForEncryption_cleanup
     pass=$2
-    mkdir -p /var/spool/asterisk/{voicemail,monitor}
-    mkdir -p /tmp/{voicemail,monitor}
     echo "rmdir /var/spool/asterisk/{voicemail,monitor}" >> /tmp/manageResourceForEncryption_cleanup
+    mkdir -p /var/spool/asterisk/{voicemail,monitor}
+    echo "rmdir /tmp/{voicemail,monitor}" >> /tmp/manageResourceForEncryption_cleanup
     dd if=/dev/zero of=/var/spool/asterisk/monitor/moni bs=512 count=11000
     dd if=/dev/zero of=/var/spool/asterisk/voicemail/voice bs=512 count=13000
     count=$1
@@ -17,11 +19,16 @@ manageResourceForEncryption(){
     move_data_to_container
     start_service
 
-    touch /tmp/manageResourceForEncryption_cleanup
+    echo "rm /var/etc/kerio/operator/pdenabled"
     touch /var/etc/kerio/operator/pdenabled
     #end encryption update status now
     status='{"result": {"status": "encrypted"}}'
     echo "$status">/var/etc/kerio/operator/encryptionStatus
+    echo "rm -rf /tmp/{voicemail,monitor}" >> /tmp/manageResourceForEncryption_cleanup
+    rm -rf /tmp/{voicemail,monitor}
+    touch /var/etc/kerio/operator/done
+    exit 0
+    rm /tmp/manageResourceForEncryption_cleanup
 }
 
 resize_increase(){
@@ -74,21 +81,22 @@ manageResourceForDecryption(){
 }
 
 move_data_to_container(){
-    cp -a /var/spool/asterisk/monitor/ /var/personal_data/kerio/operator/monitor/
-    cp -a /var/spool/asterisk/monitor/ /tmp/monitor/
-    cp -a /var/spool/asterisk/voicemail/ /var/personal_data/kerio/operator/voicemail/
-    cp -a /var/spool/asterisk/voicemail/ /tmp/voicemail/
+    cp -a /var/spool/asterisk/monitor/ /tmp/
+    cp -a /var/spool/asterisk/monitor/ /var/personal_data/kerio/operator/
+    cp -a /var/spool/asterisk/voicemail/ /tmp/
+    cp -a /var/spool/asterisk/voicemail/ /var/personal_data/kerio/operator/
 #    cp -a /var/operator/log /var/personal_data/kerio/operator/log
 #    mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
-
+     
+    exit 32
+    echo  "cp -a /tmp/monitor /var/spool/asterisk/" >> /tmp/manageResourceForEncryption_cleanup 
     rm -rf /var/spool/asterisk/monitor/
-    echo  "cp -a /tmp/monitor /var/spool/asterisk/monitor/" >> /tmp/manageResourceForEncryption_cleanup 
+    echo  "cp -a /tmp/voicemail /var/spool/asterisk/" >> /tmp/manageResourceForEncryption_cleanup 
     rm -rf /var/spool/asterisk/voicemail/
-    echo  "cp -a /tmp/voicemail /var/spool/asterisk/voicemail/" >> /tmp/manageResourceForEncryption_cleanup 
 #    rm -rf /var/operator/log
 
-    ln -s /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
     echo "unlink /var/spool/asterisk/monitor"
+    ln -s /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
     ln -s /var/personal_data/kerio/operator/voicemail /var/spool/asterisk/voicemail
 #    ln -s /var/personal_data/kerio/operator/log /var/operator/log
 #    ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
@@ -98,15 +106,15 @@ move_data_to_container(){
 create_container(){
     no_of_blocks=$1
     pass=$2
-    dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$no_of_blocks
-    echo -n  $pass|cryptsetup -q luksFormat /var/etc/kerio/operator/luks.container - 
+    if [[ ! -e /var/etc/kerio/operator/luks.container ]]; then
+       dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$no_of_blocks
+       echo -n  $pass|cryptsetup -q luksFormat /var/etc/kerio/operator/luks.container - 
+       echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks - 
+       mkfs.ext4 -j /dev/mapper/luks
+    fi
     echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks - 
-    echo "cryptsetup luksClose luks" >> /tmp/manageResourceForEncryption_cleanup 
-    mkfs.ext4 -j /dev/mapper/luks
-    mkdir -p /var/personal_data/kerio/operator
-    echo "rmdir /var/personal_data/kerio/operator" >> /tmp/manageResourceForEncryption_cleanup 
+    [ -d /var/personal_data/kerio/operator ] || mkdir -p /var/personal_data/kerio/operator
     mount /dev/mapper/luks /var/personal_data/kerio/operator/
-    echo "umount /var/personal_data/kerio/operator/" >> /tmp/manageResourceForEncryption_cleanup
 }
 
 remove_container()
