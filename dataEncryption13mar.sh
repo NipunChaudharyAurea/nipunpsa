@@ -87,7 +87,7 @@ move_data_to_container(){
 #    rm -rf /var/operator/log
 
     ln -s /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
-    echo "unlink /var/spool/asterisk/monitor
+    echo "unlink /var/spool/asterisk/monitor"
     ln -s /var/personal_data/kerio/operator/voicemail /var/spool/asterisk/voicemail
 #    ln -s /var/personal_data/kerio/operator/log /var/operator/log
 #    ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
