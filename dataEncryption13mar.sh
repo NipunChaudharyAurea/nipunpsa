@@ -18,6 +18,7 @@ manageResourceForEncryption(){
     start_service
 
     touch /tmp/manageResourceForEncryption_cleanup
+    touch /var/etc/kerio/operator/pdenabled
     #end encryption update status now
     status='{"result": {"status": "encrypted"}}'
     echo "$status">/var/etc/kerio/operator/encryptionStatus
@@ -132,7 +133,9 @@ move_data_from_container(){
 }
 
 restore_previous_state(){
+    pass=$1
 if [[ -e /var/etc/kerio/operator/pdenabled ]]; then
+    echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks -
     mount /dev/mapper/luks /var/personal_data/kerio/operator/
 fi
 }
@@ -167,6 +170,6 @@ elif [[ $action = 3 ]]; then
 elif [[ $action = 1 ]]; then
     manageResourceForDecryption
 else
-    restore_previous_state
+    restore_previous_state $1
 fi
 
