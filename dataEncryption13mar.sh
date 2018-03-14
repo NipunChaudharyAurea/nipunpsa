@@ -124,13 +124,12 @@ create_container(){
     fi
     echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks - 
     [ -d /var/personal_data/kerio/operator ] || mkdir -p /var/personal_data/kerio/operator
-    if [[ ! mountpoint -q /var/personal_data/kerio/operator ]]; then
+    if [ ! $(mountpoint -q /var/personal_data/kerio/operator) ]; then
        mount /dev/mapper/luks /var/personal_data/kerio/operator/
     fi
 }
 
-remove_container()
-{
+remove_container(){
     umount /var/personal_data/kerio/operator/
     cryptsetup luksClose luks
     rm -r /var/personal_data/kerio/operator/
@@ -146,8 +145,8 @@ move_data_from_container(){
 #    unlink /var/operator/log
 #    unlink /var/lib/firebird/2.0/data/kts.fdb
 
-    cp -a /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
-    cp -a /var/personal_data/kerio/operator/voicemail /var/spool/asterisk/voicemail
+    cp -a /var/personal_data/kerio/operator/monitor /var/spool/asterisk/
+    cp -a /var/personal_data/kerio/operator/voicemail /var/spool/asterisk/
 #    cp -a /var/personal_data/kerio/operator/log /var/operator/log
 #    mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
 }
@@ -163,10 +162,6 @@ start_service(){
 #    /etc/boxinit.d/firebird start
 #    /etc/boxinit.d/asterisk start
     echo "starting services"
-}
-
-calculate_size(){
-
 }
 
 
