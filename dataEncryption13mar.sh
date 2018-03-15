@@ -26,8 +26,7 @@ manageResourceForEncryption(){
     echo "$status">/var/etc/kerio/operator/encryptionStatus
     echo "rm -rf /tmp/{voicemail,monitor}" >> /tmp/manageResourceForEncryption_cleanup
     rm -rf /tmp/{voicemail,monitor}
-    rm /var/etc/kerio/operator/inprogress
-    echo "0" >  /var/etc/kerio/operator/done
+    mv /var/etc/kerio/operator/inprogress  /var/etc/kerio/operator/done
 }
 
 resize_increase(){
@@ -48,8 +47,7 @@ resize_increase(){
     status='{"result": {"status": "encrypted","action": "increasing container size","progress": {"current": 10,"total": 100}}}'
     echo "$status">/var/etc/kerio/operator/encryptionStatus
     start_service
-    rm /var/etc/kerio/operator/inprogress
-    echo "2" > /var/etc/kerio/operator/done
+    mv /var/etc/kerio/operator/inprogress  /var/etc/kerio/operator/done
 }
 
 resize_decrease(){
@@ -67,8 +65,7 @@ resize_decrease(){
     status='{"result": {"status": "encrypted","action": "decreasing container size","progress": {"current": 90,"total": 100}}}'
     echo "$status">/var/etc/kerio/operator/encryptionStatus
     start_service
-    rm /var/etc/kerio/operator/inprogress
-    echo "3" > /var/etc/kerio/operator/done
+    mv /var/etc/kerio/operator/inprogress  /var/etc/kerio/operator/done
 }
 
 manageResourceForDecryption(){
@@ -77,40 +74,38 @@ manageResourceForDecryption(){
 
     stop_service
     move_data_from_container
-    remove_container
     start_service
 
     rm -r /var/etc/kerio/operator/pdenabled
     #end decryption
     status='{"result": {"status": "decrypted"}}'
     echo "$status">/var/etc/kerio/operator/encryptionStatus
-    rm /var/etc/kerio/operator/inprogress
-    echo "1" > /var/etc/kerio/operator/done
+    mv /var/etc/kerio/operator/inprogress  /var/etc/kerio/operator/done
 }
 
 move_data_to_container(){
-    if [ ! -d /tmp/monitor ]; then
-       cp -a /var/spool/asterisk/monitor/ /tmp/
-       cp -a /var/spool/asterisk/monitor/ /var/personal_data/kerio/operator/
-    fi
-
-    if [ ! -d /tmp/voicemail ]; then
-       cp -a /var/spool/asterisk/voicemail/ /tmp/
-       cp -a /var/spool/asterisk/voicemail/ /var/personal_data/kerio/operator/
-    fi
-
-#    cp -a /var/operator/log /var/personal_data/kerio/operator/log
+     if [ ! -e /var/etc/kerio/operator/copyout_end ]; then
+        touch /var/etc/kerio/operator/copyout_start
+        cp -a /var/spool/asterisk/monitor/ /var/personal_data/kerio/operator/
+        cp -a /var/spool/asterisk/voicemail/ /var/personal_data/kerio/operator/
+#       cp -a /var/operator/log /var/personal_data/kerio/operator/log
 #    mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
-     
-    rm -rf /var/spool/asterisk/monitor/
-    rm -rf /var/spool/asterisk/voicemail/
-#    rm -rf /var/operator/log
+        mv /var/etc/kerio/operator/copy_start /var/etc/kerio/operator/copy_end
+     fi 
+    if [ -e /var/etc/kerio/operator/copy_end ]; then     
+        rm -rf /var/spool/asterisk/monitor/
+        rm -rf /var/spool/asterisk/voicemail/
+#       rm -rf /var/operator/log
+    else
+        move_data_to_container
+    fi
 
     ln -sf /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
     ln -sf /var/personal_data/kerio/operator/voicemail /var/spool/asterisk/voicemail
 #    ln -s /var/personal_data/kerio/operator/log /var/operator/log
 #    ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
 
+     rm /var/etc/kerio/operator/copyout_end
 }
 
 create_container(){
@@ -130,25 +125,36 @@ create_container(){
 }
 
 remove_container(){
-    umount /var/personal_data/kerio/operator/
-    cryptsetup luksClose luks
-    rm -r /var/personal_data/kerio/operator/
-    rm -r /var/etc/kerio/operator/luks.container
-    rm -r /var/etc/kerio/operator/pdpasswd
+    umount /var/personal_data/kerio/operator/ 2>/dev/null
+    cryptsetup luksClose luks 2>/dev/null 
+    rm -rf /var/personal_data/kerio/operator/
+    rm -rf /var/etc/kerio/operator/luks.container
+    rm -rf /var/etc/kerio/operator/pdpasswd
 }
 
 
 move_data_from_container(){
 
-    unlink /var/spool/asterisk/monitor
-    unlink /var/spool/asterisk/voicemail
+    unlink /var/spool/asterisk/monitor 2>/dev/null
+    unlink /var/spool/asterisk/voicemail 2>/dev/null
 #    unlink /var/operator/log
 #    unlink /var/lib/firebird/2.0/data/kts.fdb
+ 
+    if [ ! -e /var/etc/kerio/operator/copyin_end ]; then
+       touch /var/etc/kerio/operator/copyin_start
+       cp -a /var/personal_data/kerio/operator/monitor /var/spool/asterisk/
+       cp -a /var/personal_data/kerio/operator/voicemail /var/spool/asterisk/
+#      cp -a /var/personal_data/kerio/operator/log /var/operator/log
+#      mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+       mv /var/etc/kerio/operator/copyin_start  /var/etc/kerio/operator/copyin_end
+   fi
 
-    cp -a /var/personal_data/kerio/operator/monitor /var/spool/asterisk/
-    cp -a /var/personal_data/kerio/operator/voicemail /var/spool/asterisk/
-#    cp -a /var/personal_data/kerio/operator/log /var/operator/log
-#    mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+   if [ -e /var/etc/kerio/operator/copyin_end ]; then
+       remove_container 
+   else
+        move_data_from_container
+   fi
+
 }
 
 
