@@ -70,14 +70,17 @@ move_data_to_container(){
 }
 
 create_container(){
-    no_of_blocks=10000
-    dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$no_of_blocks
-    cryptsetup -y luksFormat /var/etc/kerio/operator/luks.container
-    cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks
-    mkfs.ext4 -j /dev/mapper/luks
-    mkdir -p /var/personal_data/kerio/operator
-    mount /dev/mapper/luks /var/personal_data/kerio/operator/
+    no_of_blocks=$1
+    pass=$2
+
+       dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$no_of_blocks
+       echo -n  $pass|cryptsetup -q luksFormat /var/etc/kerio/operator/luks.container -
+       echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks -
+       mkfs.ext4 -j /dev/mapper/luks
+       mkdir -p /var/personal_data/kerio/operator
+       mount /dev/mapper/luks /var/personal_data/kerio/operator/
 }
+
 
 remove_container(){
     unmount /var/personal_data/kerio/operator/
