@@ -3,17 +3,17 @@
 #. util.sh
 
 manageResourceForEncryption(){
-    echo "0" > /var/etc/kerio/operator/inprogress
+    echo "0 $1" > /var/etc/kerio/operator/inprogress
+    pass=$2
+    count=$1
+
     #start encryption
     status="work in progress"
 
-    echo  "" > /tmp/manageResourceForEncryption_cleanup
-    pass=$2
     mkdir -p /var/spool/asterisk/{voicemail,monitor}
     dd if=/dev/zero of=/var/spool/asterisk/monitor/moni bs=512 count=11000
     dd if=/dev/zero of=/var/spool/asterisk/voicemail/voice bs=512 count=13000
 
-    count=$1
     stop_service
     create_container $count $pass
     move_data_to_container
@@ -26,15 +26,16 @@ manageResourceForEncryption(){
     echo "$status">/var/etc/kerio/operator/encryptionStatus
     echo "rm -rf /tmp/{voicemail,monitor}" >> /tmp/manageResourceForEncryption_cleanup
     rm -rf /tmp/{voicemail,monitor}
-    mv /var/etc/kerio/operator/inprogress  /var/etc/kerio/operator/done
+    rm /var/etc/kerio/operator/inprogress 
 }
 
 resize_increase(){
-    echo "2" > /var/etc/kerio/operator/inprogress
-    #start increasing the volume size for calculate number of cylinder counts
-
+    echo "2 $1" > /var/etc/kerio/operator/inprogress
     pass=$2
     block_count=$1
+
+    #start increasing the volume size for calculate number of cylinder counts
+
     status='{"result": {"status": "encrypted","action": "resizing","progress": {"current": 10,"total": 100}}}'
     echo "$status">/var/etc/kerio/operator/encryptionStatus
 
@@ -47,15 +48,16 @@ resize_increase(){
     status='{"result": {"status": "encrypted","action": "increasing container size","progress": {"current": 10,"total": 100}}}'
     echo "$status">/var/etc/kerio/operator/encryptionStatus
     start_service
-    mv /var/etc/kerio/operator/inprogress  /var/etc/kerio/operator/done
+    rm /var/etc/kerio/operator/inprogress 
 }
 
 resize_decrease(){
-    echo "3" > /var/etc/kerio/operator/inprogress
-    #start decreasing the volume size for calculate number of cylinder counts
-
+    echo "3 $1" > /var/etc/kerio/operator/inprogress
     pass=$2
     block_count=$1
+
+    #start decreasing the volume size for calculate number of cylinder counts
+
     stop_service
     move_data_from_container
     remove_container
@@ -65,11 +67,12 @@ resize_decrease(){
     status='{"result": {"status": "encrypted","action": "decreasing container size","progress": {"current": 90,"total": 100}}}'
     echo "$status">/var/etc/kerio/operator/encryptionStatus
     start_service
-    mv /var/etc/kerio/operator/inprogress  /var/etc/kerio/operator/done
+    rm /var/etc/kerio/operator/inprogress 
 }
 
 manageResourceForDecryption(){
     echo "1" > /var/etc/kerio/operator/inprogress
+
     #start decryption
 
     stop_service
@@ -80,7 +83,7 @@ manageResourceForDecryption(){
     #end decryption
     status='{"result": {"status": "decrypted"}}'
     echo "$status">/var/etc/kerio/operator/encryptionStatus
-    mv /var/etc/kerio/operator/inprogress  /var/etc/kerio/operator/done
+    rm /var/etc/kerio/operator/inprogress 
 }
 
 move_data_to_container(){
@@ -171,15 +174,17 @@ start_service(){
 }
 
 
+execute_actual(){
 
-
-#script start
 action=$1
 volumeSize=$2
 password=$3
 
 #action = 0 encrypt content
+#action = 2 encrypt increase
+#action = 3 encrypt decrease
 #action = 1 decrypt content
+
 if [[ $action = 0 ]]; then
     manageResourceForEncryption $volumeSize $password 
 elif [[ $action = 2 ]]; then
@@ -188,7 +193,18 @@ elif [[ $action = 3 ]]; then
     resize_decrease $volumeSize $password
 elif [[ $action = 1 ]]; then
     manageResourceForDecryption
-else
-    restore_previous_state $1
 fi
 
+}
+
+#script start
+
+passwd=`cat path-to-password-file`
+
+if [ -e /var/etc/kerio/operator/inprogress ]; then
+   action=`cat /var/etc/kerio/operator/inprogress|awk '{print $1}'`
+   count=`cat /var/etc/kerio/operator/inprogress|awk '{print $2}'`
+   execute_actual $action $count $passwd
+fi
+
+execute_actual $1 $2 $passwd
