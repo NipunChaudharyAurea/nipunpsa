@@ -10,10 +10,6 @@ manageResourceForEncryption(){
     #start encryption
     status="work in progress"
 
-    mkdir -p /var/spool/asterisk/{voicemail,monitor}
-    dd if=/dev/zero of=/var/spool/asterisk/monitor/moni bs=512 count=11000
-    dd if=/dev/zero of=/var/spool/asterisk/voicemail/voice bs=512 count=13000
-
     stop_service
     create_container $count $pass
     move_data_to_container
@@ -93,9 +89,9 @@ move_data_to_container(){
         cp -a /var/spool/asterisk/voicemail/ /var/personal_data/kerio/operator/
 #       cp -a /var/operator/log /var/personal_data/kerio/operator/log
 #    mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
-        mv /var/etc/kerio/operator/copy_start /var/etc/kerio/operator/copy_end
+        mv /var/etc/kerio/operator/copyout_start /var/etc/kerio/operator/copyout_end
      fi 
-    if [ -e /var/etc/kerio/operator/copy_end ]; then     
+    if [ -e /var/etc/kerio/operator/copyout_end ]; then     
         rm -rf /var/spool/asterisk/monitor/
         rm -rf /var/spool/asterisk/voicemail/
 #       rm -rf /var/operator/log
@@ -114,13 +110,19 @@ move_data_to_container(){
 create_container(){
     no_of_blocks=$1
     pass=$2
+
+    mkdir -p /var/spool/asterisk/{voicemail,monitor}
+    dd if=/dev/zero of=/var/spool/asterisk/monitor/moni bs=512 count=11000
+    dd if=/dev/zero of=/var/spool/asterisk/voicemail/voice bs=512 count=13000
+
     if [[ ! -e /var/etc/kerio/operator/luks.container ]]; then
        dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$no_of_blocks
        echo -n  $pass|cryptsetup -q luksFormat /var/etc/kerio/operator/luks.container - 
        echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks - 
        mkfs.ext4 -j /dev/mapper/luks
     fi
-    echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks - 
+
+    echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks - 2>/dev/null 
     [ -d /var/personal_data/kerio/operator ] || mkdir -p /var/personal_data/kerio/operator
     if [ ! $(mountpoint -q /var/personal_data/kerio/operator) ]; then
        mount /dev/mapper/luks /var/personal_data/kerio/operator/
@@ -199,7 +201,7 @@ fi
 
 #script start
 
-passwd=`cat path-to-password-file`
+passwd=`cat /etc/cryptpasswd`
 
 if [ -e /var/etc/kerio/operator/inprogress ]; then
    action=`cat /var/etc/kerio/operator/inprogress|awk '{print $1}'`
