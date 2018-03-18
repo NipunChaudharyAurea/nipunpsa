@@ -1,7 +1,7 @@
 #!/bin/bash
 
 . util.sh
-
+modprobe loop
 manageResourceForEncryption(){
     #start encryption
 
