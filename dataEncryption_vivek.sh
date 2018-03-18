@@ -83,7 +83,7 @@ create_container(){
 
 
 remove_container(){
-    unmount /var/personal_data/kerio/operator/
+    umount /var/personal_data/kerio/operator/
     cryptsetup luksClose luks
     rm -r /var/personal_data/kerio/operator/
     rm -r /var/etc/kerio/operator/luks.container
@@ -105,14 +105,14 @@ move_data_from_container(){
 }
 
 stop_service(){
-#    /etc/boxinit.d/firebird stop
-#    /etc/boxinit.d/asterisk stop
+    /etc/boxinit.d/firebird stop
+    /etc/boxinit.d/asterisk stop
     echo "Stopping services"
 }
 
 start_service(){
-#    /etc/boxinit.d/firebird start
-#    /etc/boxinit.d/asterisk start
+    /etc/boxinit.d/firebird start
+    /etc/boxinit.d/asterisk start
     echo "starting services"
 }
 
@@ -141,7 +141,7 @@ fi
 }
 #date '+%-d/%b/%Y %H:%M:%S'
 #script start
-passwd=`cat path-to-password-file`
+passwd=`cat /var/etc/kerio/operator/pdpassword`
 
 execute_actual $1 $2 $passwd
 
