@@ -86,6 +86,7 @@ remove_container(){
     umount /var/personal_data/kerio/operator/
     cryptsetup luksClose luks
     rm -r /var/personal_data/kerio/operator/
+    mkdir -p /var/personal_data/kerio/operator
     rm -r /var/etc/kerio/operator/luks.container
     rm -r /var/etc/kerio/operator/pdpasswd
 }
