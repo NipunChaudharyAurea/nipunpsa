@@ -24,7 +24,7 @@ resize_increase(){
 
     umount /var/personal_data/kerio/operator/
     cryptsetup luksClose luks
-    dd if=/dev/zero of=/var/etc/kerio/operator/luks.container conv=notrunc oflag=append bs=1M count=256
+    dd if=/dev/zero of=/var/etc/kerio/operator/luks.container conv=notrunc oflag=append bs=512 count=$block_count
     echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks -
     e2fsck -f /dev/mapper/luks
     resize2fs -f /dev/mapper/luks
