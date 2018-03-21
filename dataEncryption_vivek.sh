@@ -16,14 +16,20 @@ manageResourceForEncryption(){
 
 resize_increase(){
     block_count=$1
+    pass=$2
 
     #start increasing the volume size for calculate number of cylinder counts
 
     stop_service
-    dd if=/dev/zero bs=512 of=/var/etc/kerio/operator/luks.container conv=notrunc oflag=append count=$block_count
-    losetup -c /dev/loop0
-    cryptsetup -b $block_count resize luks
-    resize2fs /dev/mapper/luks
+
+    umount /var/personal_data/kerio/operator/
+    cryptsetup luksClose luks
+    dd if=/dev/zero of=/var/etc/kerio/operator/luks.container conv=notrunc oflag=append bs=1M count=256
+    echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks -
+    e2fsck -f /dev/mapper/luks
+    resize2fs -f /dev/mapper/luks
+    mount /dev/mapper/luks /var/personal_data/kerio/operator/
+
     start_service
 
 }
@@ -132,7 +138,7 @@ password=$3
 if [[ $action = 0 ]]; then
     manageResourceForEncryption $volumeSize $password
 elif [[ $action = 2 ]]; then
-    resize_increase $volumeSize
+    resize_increase $volumeSize $password
 elif [[ $action = 3 ]]; then
     resize_decrease $volumeSize $password
 elif [[ $action = 1 ]]; then
