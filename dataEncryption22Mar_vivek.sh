@@ -1,7 +1,11 @@
 #!/bin/bash
 
 . util.sh
+
 modprobe loop
+mount -o remount,rw /
+
+
 manageResourceForEncryption(){
     #start encryption
 
@@ -205,7 +209,6 @@ elif [ ! -e /var/personal_data/kerio/operator/kts.fdb ]; then
    mount /dev/mapper/luks /var/personal_data/kerio/operator/
    mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
    ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
-   /etc/boxinit.d/ksyslog restart
 fi
 
 start_service
@@ -215,12 +218,14 @@ start_service
 stop_service(){
     /etc/boxinit.d/firebird stop
     /etc/boxinit.d/asterisk stop
+    /etc/boxinit.d/ksyslog stop
     echo "Stopping services"
 }
 
 start_service(){
     /etc/boxinit.d/firebird start
     /etc/boxinit.d/asterisk start
+    /etc/boxinit.d/ksyslog start
     echo "starting services"
 }
 
@@ -252,7 +257,7 @@ fi
 
 #date '+%-d/%b/%Y %H:%M:%S'
 #script start
-mount -o remount,rw /
+
 if [ ! -L /etc/boxrc.d/123manage_reboot ]; then
     echo "#!/bin/bash" > /opt/kerio/operator/bin/manage_reboot.sh 
     echo "/opt/kerio/operator/bin/dataEncryption.sh reboot" >> /opt/kerio/operator/bin/manage_reboot.sh 
