@@ -115,11 +115,11 @@ dLog "$gtag $operation successfully created symbolik link for /var/lib/firebird/
 }
 
 create_container(){
-    no_of_blocks=$1
+    block_count=$1
     pass=$2
     operation=$3
 
-       dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$no_of_blocks
+       dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$block_count
        command="dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$no_of_blocks"
 dLog "$gtag $operation successful $command"
 
@@ -233,8 +233,8 @@ start_service(){
 execute_actual(){
 
 action=$1
-volumeSize=$2
-password=`cat /var/etc/kerio/operator/pdpassword`
+volumeSize=$(expr $2 \* 2 + 1)
+password=$(cat /var/etc/kerio/operator/pdpassword)
 
 #action = 0 encrypt content
 #action = 2 encrypt increase
