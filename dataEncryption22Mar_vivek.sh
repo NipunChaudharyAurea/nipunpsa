@@ -59,6 +59,7 @@ resize_decrease(){
     remove_container $operation
     create_container $block_count $pass $operation 
     move_data_to_container $operation
+    start_service
 
 }
 
@@ -204,6 +205,7 @@ elif [ ! -e /var/personal_data/kerio/operator/kts.fdb ]; then
    mount /dev/mapper/luks /var/personal_data/kerio/operator/
    mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
    ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+   /etc/boxinit.d/ksyslog restart
 fi
 
 start_service
@@ -260,4 +262,3 @@ fi
 
 gtag='{Data Encryption}'
 execute_actual $1 $2 
-mount -o remount,ro /
