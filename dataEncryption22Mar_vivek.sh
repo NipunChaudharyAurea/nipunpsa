@@ -18,6 +18,9 @@ manageResourceForEncryption(){
     move_data_to_container $operation
     start_service
     touch /var/etc/kerio/operator/pdenabled
+    status='{"status":"encrypted"}'
+    echo $status > /var/etc/kerio/operator/encryptionStatus
+    sLog "Personal data encryption is enabled."
 }
 
 resize_increase(){
@@ -77,7 +80,10 @@ manageResourceForDecryption(){
     start_service
     rm -r /var/etc/kerio/operator/pdenabled
     command="rm -r /var/etc/kerio/operator/pdenabled"
-dLog "$gtag $operation successful $command"
+    dLog "$gtag $operation successful $command"
+    status='{"status":"decrypted"}'
+    echo $status > /var/etc/kerio/operator/encryptionStatus
+    sLog "Personal data encryption is disabled."
 }
 
 move_data_to_container(){
@@ -233,7 +239,11 @@ start_service(){
 execute_actual(){
 
 action=$1
-volumeSize=$(expr $2 \* 2 + 1)
+
+if [[ ! -z "$2" ]]; then
+   volumeSize=$(expr $2 \* 2 + 1)
+fi
+
 password=$(cat /var/etc/kerio/operator/pdpassword)
 
 #action = 0 encrypt content
