@@ -130,14 +130,13 @@ sLog "$gtag $operation successfully moved resource /var/spool/asterisk/voicemail
     cp -a /var/operator/log /var/personal_data/kerio/operator/log
 sLog "$gtag $operation successfully moved resource /var/operator/log" 
 
-    cp /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
+    mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
 sLog "$gtag $operation successfully moved resource /var/lib/firebird/2.0/data/kts.fdb" 
 
 
     rm -rf /var/spool/asterisk/monitor/
     rm -rf /var/spool/asterisk/voicemail/
     rm -rf /var/operator/log
-    rm -rf /var/lib/firebird/2.0/data/kts.fdb
 
     ln -s /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
 sLog "$gtag $operation successfully created symbolik link for /var/spool/asterisk/monitor/" 
@@ -206,7 +205,7 @@ sLog "$gtag $operation successfully moved resource $command"
     command="/var/operator/log"
 sLog "$gtag $operation successfully moved resource $command"
 
-    cp /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+    mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
     command="/var/lib/firebird/2.0/data/kts.fdb"
 sLog "$gtag $operation successfully moved resource $command"
 }
