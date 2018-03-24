@@ -10,7 +10,7 @@ manageResourceForEncryption(){
 
     pass=$2
     count=$1
-    operation=$3
+    operation="$3"
 
     stop_service
     create_container $count $pass $operation
@@ -25,7 +25,7 @@ manageResourceForEncryption(){
 resize_increase(){
     block_count=$1
     pass=$2
-    operation=$3
+    operation="$3"
 
     #start increasing the volume size for calculate number of cylinder counts
 
@@ -56,7 +56,7 @@ sLog "$gtag $operation successful $command"
 resize_decrease(){
     block_count=$1
     pass=$2
-    operation=$3
+    operation="$3"
 
     #start decreasing the volume size for calculate number of cylinder counts
 
@@ -71,7 +71,7 @@ resize_decrease(){
 
 manageResourceForDecryption(){
     #start decryption
-    operation=$1
+    operation="$1"
 
     stop_service
     move_data_from_container $operation
@@ -93,7 +93,7 @@ sLog "$gtag $operation successful $command"
 create_container(){
     block_count=$1
     pass=$2
-    operation=$3
+    operation="$3"
 
        dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$block_count
        command="dd if=/dev/zero of=/var/etc/kerio/operator/luks.container bs=512 count=$no_of_blocks"
@@ -119,7 +119,7 @@ sLog "$gtag $operation successful $command"
 }
 
 move_data_to_container(){
-    operation=$1 
+    operation="$1" 
    
     cp -a /var/spool/asterisk/monitor/ /var/personal_data/kerio/operator/monitor/
 sLog "$gtag $operation successfully moved resource /var/spool/asterisk/monitor/" 
@@ -179,13 +179,13 @@ unmount_resource(){
           start_service
           exit 12
        else
-          sLog "Unmounted the resourse successfully" 
-          echo "Unmounted the resourse successfully"  >> /root/encryp.log
+          sLog "Unmounted the resourse successfully for $1" 
+          echo "Unmounted the resourse successfully for $1"  >> /root/encryp.log
        fi
 }
 
 move_data_from_container(){
-    operation=$1
+    operation="$1"
 
     unlink /var/spool/asterisk/monitor
     unlink /var/spool/asterisk/voicemail
@@ -211,7 +211,7 @@ sLog "$gtag $operation successfully moved resource $command"
 }
 
 remove_container(){
-    operation=$1
+    operation="$1"
     
     unmount_resource "Removing Container"
     

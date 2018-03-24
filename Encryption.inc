@@ -169,15 +169,21 @@ class Encryption extends EncryptionGenerated {
         }
         return 0;
     }
+	public function mylog($msg){
+	$cmd="echo '" . $msg . "'>>/root/tmplog" ;
+	 system($cmd);
+ 	}
 
 	public function startResizing(&$p_status, &$p_action, &$p_error, &$p_progress, $password)
     {
+ 		$this->mylog("in resizing") ;
 		$encryptedDataSize = $this->getCurrentResourceEncryptedSize();
-		$encryptedVolumeSize = $this->p_getUsedSpace('/var/etc/kerio/operator/luks.container');
-               $encryptedVolumeSize = $encryptedVolumeSize - 2048;
+		$encryptedVolumeSize = Process("df -k  /dev/mapper/luks | tail -1  | awk '{print $4}'")->run();
+
 		$freeSpace = $this->p_getFreeSpace();
 		$freeSpace = $this->p_getFreeSpace() / 1024;
-
+		
+ 		$this->mylog("in resizing " . $encryptedVolumeSize . " " . $freeSpace . " " . $encryptedDataSize) ;
 		$p_lock = new p_MutexEncryption();
 		if (!$p_lock->p_lock()) {
 			eLog('Another process is already running!');
@@ -249,7 +255,8 @@ class Encryption extends EncryptionGenerated {
       */
     public function getEncryptionStatus(&$p_status, &$p_action, &$p_error, &$p_progress)
     {
-		//sLog("start : status ".$p_status." action ".$p_action." error ".serialize($p_error)." progress current: ".$p_progress['current']." progress total ".$p_progress['total']);
+	#	$this->mylog("checking status");
+		sLog("start : status ".$p_status." action ".$p_action." error ".serialize($p_error)." progress current: ".$p_progress['current']." progress total ".$p_progress['total']);
         $p_session = new Session();
         $p_loggedUser = $p_session->p_getUsersId();
         $p_db = p_Database::p_init();
@@ -286,7 +293,7 @@ class Encryption extends EncryptionGenerated {
 				sLog("i m here in status encrypted");
 				$encryptedDataSize = $this->getCurrentResourceEncryptedSize();
 				$encryptedVolumeSize = $this->p_getUsedSpace('/var/etc/kerio/operator/luks.container');
-				$encryptedVolumeSize = $encryptedVolumeSize - 2048;
+				$encryptedVolumeSize = 0.72 * 0.94 * $encryptedVolumeSize;
 				$freeSpace = $this->p_getFreeSpace();
 				$freeSpace = $this->p_getFreeSpace() / 1024;
 				sLog("encdatasize .".$encryptedDataSize." vol size: ".$encryptedVolumeSize);
@@ -300,7 +307,8 @@ class Encryption extends EncryptionGenerated {
 		                "code" => 6001,
 		                "message" => QT_TRANSLATE_NOOP("serverMessage","Critically low free space.")
 		            ];
-				} elseif($encryptedDataSize > (0.20 * $encryptedVolumeSize)){
+				} elseif($encryptedDataSize < (0.20 * $encryptedVolumeSize)){
+					$this->mylog("tes decrypt " . $encryptedDataSize . " " . $encryptedVolumeSize);
 					$p_error = [
 		                "code" => 6002,
 		                "message" => QT_TRANSLATE_NOOP("serverMessage","Encrypted volume allocate too much disk space.")
@@ -530,7 +538,7 @@ class Encryption extends EncryptionGenerated {
             $volumeSize = $resourceSize * 2;
         }
 		sLog("volume size". $volumeSize);
-        return $volumeSize+2048;
+        return $volumeSize;
     }
 
 }
