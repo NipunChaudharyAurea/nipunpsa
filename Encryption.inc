@@ -178,7 +178,8 @@ class Encryption extends EncryptionGenerated {
     {
  		$this->mylog("in resizing") ;
 		$encryptedDataSize = $this->getCurrentResourceEncryptedSize();
-		$encryptedVolumeSize = Process("df -k  /dev/mapper/luks | tail -1  | awk '{print $4}'")->run();
+		$encryptedVolumeSize = $this->p_getUsedSpace('/var/etc/kerio/operator/luks.container');
+               $encryptedVolumeSize = $encryptedVolumeSize - 4096;
 
 		$freeSpace = $this->p_getFreeSpace();
 		$freeSpace = $this->p_getFreeSpace() / 1024;
@@ -293,7 +294,7 @@ class Encryption extends EncryptionGenerated {
 				sLog("i m here in status encrypted");
 				$encryptedDataSize = $this->getCurrentResourceEncryptedSize();
 				$encryptedVolumeSize = $this->p_getUsedSpace('/var/etc/kerio/operator/luks.container');
-				$encryptedVolumeSize = 0.72 * 0.94 * $encryptedVolumeSize;
+				$encryptedVolumeSize = $encryptedVolumeSize - 4096;
 				$freeSpace = $this->p_getFreeSpace();
 				$freeSpace = $this->p_getFreeSpace() / 1024;
 				sLog("encdatasize .".$encryptedDataSize." vol size: ".$encryptedVolumeSize);
@@ -538,7 +539,7 @@ class Encryption extends EncryptionGenerated {
             $volumeSize = $resourceSize * 2;
         }
 		sLog("volume size". $volumeSize);
-        return $volumeSize;
+        return $volumeSize+4096;
     }
 
 }

@@ -154,7 +154,8 @@ sLog "$gtag $operation successfully created symbolik link for /var/lib/firebird/
 
 unmount_resource(){
         /etc/boxinit.d/ksyslog stop
-        sleep 1
+       sleep 1  
+       pkill -9 ksyslog
        error=$(umount /var/personal_data/kerio/operator 2>&1)
        stat=$(echo $?)
         /etc/boxinit.d/ksyslog start
@@ -190,7 +191,7 @@ move_data_from_container(){
     unlink /var/spool/asterisk/monitor
     unlink /var/spool/asterisk/voicemail
     unlink /var/operator/log
-    unlink /var/lib/firebird/2.0/data/kts.fdb
+    rm -f  /var/lib/firebird/2.0/data/kts.fdb
 
 
     cp -a /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
