@@ -10,7 +10,7 @@ manageResourceForEncryption(){
 
     pass=$2
     count=$1
-    operation="$3"
+    operation=$3
 
     stop_service
     create_container $count $pass $operation
@@ -25,13 +25,17 @@ manageResourceForEncryption(){
 resize_increase(){
     block_count=$1
     pass=$2
-    operation="$3"
+    operation=$3
 
     #start increasing the volume size for calculate number of cylinder counts
 
     stop_service
 
-    unmount_resource "Resizing"
+    if [ ! grep -qs '/var/personal_data/kerio/operator/' /proc/mounts ]; then
+        manage_reboot
+    fi
+    
+    unmount_resource $operation
 
     cryptsetup luksClose luks
 
@@ -56,11 +60,16 @@ sLog "$gtag $operation successful $command"
 resize_decrease(){
     block_count=$1
     pass=$2
-    operation="$3"
+    operation=$3
 
     #start decreasing the volume size for calculate number of cylinder counts
 
     stop_service
+    
+    if [ ! grep -qs '/var/personal_data/kerio/operator/' /proc/mounts ]; then
+        manage_reboot
+    fi
+
     move_data_from_container $operation
     remove_container $operation
     create_container $block_count $pass $operation 
@@ -156,7 +165,7 @@ unmount_resource(){
         /etc/boxinit.d/ksyslog stop
        sleep 1  
        pkill -9 ksyslog
-       error=$(umount /var/personal_data/kerio/operator 2>&1)
+       error=$(umount /var/personal_data/kerio/operator 2>&1 || ! grep -qs '/var/personal_data/kerio/operator/' /proc/mounts)
        stat=$(echo $?)
         /etc/boxinit.d/ksyslog start
        if [ $stat != 0 ]; then
@@ -178,7 +187,7 @@ unmount_resource(){
               move_data_to_container
           fi    
           start_service
-          exit 12
+          exit 123
        else
           sLog "Unmounted the resourse successfully for $1" 
           echo "$(date '+%-d/%b/%Y %H:%M:%S')  Unmounted the resourse successfully for $1"  >> /root/encryp.log
@@ -186,7 +195,7 @@ unmount_resource(){
 }
 
 move_data_from_container(){
-    operation="$1"
+    operation=$1
 
     unlink /var/spool/asterisk/monitor
     unlink /var/spool/asterisk/voicemail
@@ -212,7 +221,7 @@ sLog "$gtag $operation successfully moved resource $command"
 }
 
 remove_container(){
-    operation="$1"
+    operation=$1
     
     unmount_resource "Removing Container"
     
