@@ -167,13 +167,13 @@ unmount_resource(){
           sLog "$lsof_output"
           sLog "$1 Failed"
           sLog "Error while umounting the resource, Hence exiting. Please try again"
-          echo "Unmount Failed with Following Error:" >> /root/encryp.log
-          echo "$error" >> /root/encryp.log
-          echo "lsof out as follows :" >> /root/encryp.log
+          echo "$(date '+%-d/%b/%Y %H:%M:%S')  Unmount Failed with Following Error:" >> /root/encryp.log
+          echo "$(date '+%-d/%b/%Y %H:%M:%S')  $error" >> /root/encryp.log
+          echo "$(date '+%-d/%b/%Y %H:%M:%S')  lsof out as follows :" >> /root/encryp.log
               lsof_output=$(lsof /var/personal_data/kerio/operator) 
-          echo "$lsof_output" >> /root/encryp.log
-          echo "$1 Failed" >> /root/encryp.log
-          echo "Error while umounting the resource, Hence exiting. Please try again" >> /root/encryp.log
+          echo "$(date '+%-d/%b/%Y %H:%M:%S')  $lsof_output" >> /root/encryp.log
+          echo "$(date '+%-d/%b/%Y %H:%M:%S')  $1 Failed" >> /root/encryp.log
+          echo "$(date '+%-d/%b/%Y %H:%M:%S')  Error while umounting the resource, Hence exiting. Please try again" >> /root/encryp.log
           if [ $1 == "Removing Container" ]; then
               move_data_to_container
           fi    
@@ -181,7 +181,7 @@ unmount_resource(){
           exit 12
        else
           sLog "Unmounted the resourse successfully for $1" 
-          echo "Unmounted the resourse successfully for $1"  >> /root/encryp.log
+          echo "$(date '+%-d/%b/%Y %H:%M:%S')  Unmounted the resourse successfully for $1"  >> /root/encryp.log
        fi
 }
 
@@ -286,9 +286,9 @@ password=$(cat /var/etc/kerio/operator/pdpassword)
 if [[ $action = 0 ]]; then
     manageResourceForEncryption $volumeSize $password "Encryption"
 elif [[ $action = 2 ]]; then
-    resize_increase $volumeSize $password "Resize: increase"
+    resize_increase $volumeSize $password "Resize:increase"
 elif [[ $action = 3 ]]; then
-    resize_decrease $volumeSize $password "Resize: decrease"
+    resize_decrease $volumeSize $password "Resize:decrease"
 elif [[ $action = 1 ]]; then
     manageResourceForDecryption "Decryption"
 elif [[ $action = "reboot" ]]; then
@@ -309,3 +309,4 @@ fi
 
 gtag='{Data Encryption}'
 execute_actual $1 $2 
+/etc/boxinit.d/ksyslog restart
