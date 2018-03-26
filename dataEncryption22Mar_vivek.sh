@@ -254,10 +254,12 @@ if [ -e /var/personal_data/kerio/operator/kts.fdb ]; then
 elif [ ! -e /var/personal_data/kerio/operator/kts.fdb ]; then
    modprobe loop
    pass=$(cat /var/etc/kerio/operator/pdpassword)
-   echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks -
-   mount /dev/mapper/luks /var/personal_data/kerio/operator/
-   mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
-   ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+   if [ ! -z "$pass" ]; then
+       echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks -
+       mount /dev/mapper/luks /var/personal_data/kerio/operator/
+       mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
+       ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+   fi
 fi
 
 start_service
@@ -301,7 +303,7 @@ elif [[ $action = 3 ]]; then
 elif [[ $action = 1 ]]; then
     manageResourceForDecryption "Decryption"
 elif [[ $action = "reboot" ]]; then
-    test -f $pfile && manage_reboot $password
+    manage_reboot $password
 fi
 
 }
