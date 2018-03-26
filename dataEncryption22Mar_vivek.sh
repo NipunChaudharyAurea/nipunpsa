@@ -275,8 +275,8 @@ action=$1
 if [[ ! -z "$2" ]]; then
    volumeSize=$(expr $2 \* 3 + 1)
 fi
-
-password=$(cat /var/etc/kerio/operator/pdpassword)
+pfile='/var/etc/kerio/operator/pdpassword'
+password=$(cat $pfile 2>/dev/null)
 
 #action = 0 encrypt content
 #action = 2 encrypt increase
@@ -284,15 +284,15 @@ password=$(cat /var/etc/kerio/operator/pdpassword)
 #action = 1 decrypt content
 #action = reboot #Will run on reboot
 if [[ $action = 0 ]]; then
-    manageResourceForEncryption $volumeSize $password "Encryption"
+    test -f $pfile && manageResourceForEncryption $volumeSize $password "Encryption"
 elif [[ $action = 2 ]]; then
-    resize_increase $volumeSize $password "Resize:increase"
+    test -f $pfile && resize_increase $volumeSize $password "Resize:increase"
 elif [[ $action = 3 ]]; then
-    resize_decrease $volumeSize $password "Resize:decrease"
+    test -f $pfile && resize_decrease $volumeSize $password "Resize:decrease"
 elif [[ $action = 1 ]]; then
     manageResourceForDecryption "Decryption"
 elif [[ $action = "reboot" ]]; then
-    manage_reboot $password
+    test -f $pfile && manage_reboot $password
 fi
 
 }

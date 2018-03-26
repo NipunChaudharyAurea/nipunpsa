@@ -298,6 +298,12 @@ class Encryption extends EncryptionGenerated {
 				$freeSpace = $this->p_getFreeSpace();
 				$freeSpace = $this->p_getFreeSpace() / 1024;
 				sLog("encdatasize .".$encryptedDataSize." vol size: ".$encryptedVolumeSize);
+                if (!@file_exists(KERIO_OPERATOR_DATA_ENCRYPTION_PASSWORD_FILE)) {
+                    $p_error = [
+                        "code" => 6666,
+                        "message" => QT_TRANSLATE_NOOP("serverMessage","Kerio Operator recovered after serious failure.")
+                    ];
+                }
                 if($encryptedDataSize > (0.95 * $encryptedVolumeSize)){
                     $p_error = [
                         "code" => 6001,
