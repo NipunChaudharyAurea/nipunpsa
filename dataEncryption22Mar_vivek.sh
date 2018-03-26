@@ -31,7 +31,7 @@ resize_increase(){
 
     stop_service
 
-    if [ ! grep -qs '/var/personal_data/kerio/operator/' /proc/mounts ]; then
+    if  ! grep -qs '/var/personal_data/kerio/operator/' /proc/mounts; then
         manage_reboot
     fi
     
