@@ -12,8 +12,8 @@ manageResourceForEncryption(){
     count=$1
     operation=$3
 
-    stop_service
     create_container $count $pass $operation
+    stop_service
     move_data_to_container $operation
     start_service
     touch /var/etc/kerio/operator/pdenabled
@@ -138,14 +138,22 @@ sLog "$gtag $operation successfully moved resource /var/spool/asterisk/voicemail
 
     cp -a /var/operator/log /var/personal_data/kerio/operator/log
 sLog "$gtag $operation successfully moved resource /var/operator/log" 
-
+     
+    /etc/boxinit.d/firebird stop 
+    
+    if [ -f /var/lib/firebird/2.0/data/kts.fdb ]; then
     mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
 sLog "$gtag $operation successfully moved resource /var/lib/firebird/2.0/data/kts.fdb" 
-
+    fi 
 
     rm -rf /var/spool/asterisk/monitor/
     rm -rf /var/spool/asterisk/voicemail/
     rm -rf /var/operator/log
+
+    
+    ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+sLog "$gtag $operation successfully created symbolik link for /var/lib/firebird/2.0/data/kts.fdb" 
+    /etc/boxinit.d/firebird start
 
     ln -s /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
 sLog "$gtag $operation successfully created symbolik link for /var/spool/asterisk/monitor/" 
@@ -155,9 +163,6 @@ sLog "$gtag $operation successfully created symbolik link for /var/spool/asteris
 
     ln -s /var/personal_data/kerio/operator/log /var/operator/log
 sLog "$gtag $operation successfully created symbolik link for /var/operator/log" 
-
-    ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
-sLog "$gtag $operation successfully created symbolik link for /var/lib/firebird/2.0/data/kts.fdb" 
 
 }
 
@@ -200,8 +205,19 @@ move_data_from_container(){
     unlink /var/spool/asterisk/monitor
     unlink /var/spool/asterisk/voicemail
     unlink /var/operator/log
-    rm -f  /var/lib/firebird/2.0/data/kts.fdb
+    
+    /etc/boxinit.d/firebird stop
 
+    if [ -L /var/lib/firebird/2.0/data/kts.fdb ]; then
+       rm -f  /var/lib/firebird/2.0/data/kts.fdb
+    fi 
+   
+    if [ ! -f /var/lib/firebird/2.0/data/kts.fdb ]; then
+       mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+    fi 
+    command="/var/lib/firebird/2.0/data/kts.fdb"
+sLog "$gtag $operation successfully moved resource $command"
+    /etc/boxinit.d/firebird start
 
     cp -a /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
     command="/var/spool/asterisk/monitor"
@@ -215,9 +231,7 @@ sLog "$gtag $operation successfully moved resource $command"
     command="/var/operator/log"
 sLog "$gtag $operation successfully moved resource $command"
 
-    mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
-    command="/var/lib/firebird/2.0/data/kts.fdb"
-sLog "$gtag $operation successfully moved resource $command"
+    
 }
 
 remove_container(){
@@ -251,14 +265,16 @@ stop_service
 if [ -e /var/personal_data/kerio/operator/kts.fdb ]; then
    unlink /var/lib/firebird/2.0/data/kts.fdb
    mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
-elif [ ! -e /var/personal_data/kerio/operator/kts.fdb ]; then
+elif [ ! -e /var/personal_data/kerio/operator/kts.fdb ] && [ -f /var/etc/kerio/operator/pdenabled ]; then
    modprobe loop
    pass=$(cat /var/etc/kerio/operator/pdpassword)
    if [ ! -z "$pass" ]; then
        echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks -
        mount /dev/mapper/luks /var/personal_data/kerio/operator/
+       /etc/boxinit.d/firebird stop
        mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
        ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+       /etc/boxinit.d/firebird start
    fi
 fi
 
@@ -268,12 +284,10 @@ start_service
 
 stop_service(){
     /etc/boxinit.d/asterisk stop
-    /etc/boxinit.d/firebird stop
     echo "Stopping services"
 }
 
 start_service(){
-    /etc/boxinit.d/firebird start
     /etc/boxinit.d/asterisk start
     echo "starting services"
 }
