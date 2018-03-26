@@ -298,16 +298,16 @@ class Encryption extends EncryptionGenerated {
 				$freeSpace = $this->p_getFreeSpace();
 				$freeSpace = $this->p_getFreeSpace() / 1024;
 				sLog("encdatasize .".$encryptedDataSize." vol size: ".$encryptedVolumeSize);
-				if($encryptedDataSize > (0.8 * $encryptedVolumeSize)){
-					$p_error = [
-		                "code" => 6000,
-		                "message" => QT_TRANSLATE_NOOP("serverMessage","Not enough free space on encrypted volume.")
-		            ];
-				} elseif($encryptedDataSize > (0.95 * $encryptedVolumeSize)){
-					$p_error = [
-		                "code" => 6001,
-		                "message" => QT_TRANSLATE_NOOP("serverMessage","Critically low free space.")
-		            ];
+                if($encryptedDataSize > (0.95 * $encryptedVolumeSize)){
+                    $p_error = [
+                        "code" => 6001,
+                        "message" => QT_TRANSLATE_NOOP("serverMessage","Critically low free space.")
+                    ];
+				} elseif($encryptedDataSize > (0.8 * $encryptedVolumeSize)){
+                    $p_error = [
+                        "code" => 6000,
+                        "message" => QT_TRANSLATE_NOOP("serverMessage","Not enough free space on encrypted volume.")
+                    ];
 				} elseif($encryptedDataSize < (0.20 * $encryptedVolumeSize)){
 					$this->mylog("tes decrypt " . $encryptedDataSize . " " . $encryptedVolumeSize);
 					$p_error = [
