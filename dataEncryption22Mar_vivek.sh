@@ -2,9 +2,6 @@
 
 . util.sh
 
-modprobe loop
-mount -o remount,rw /
-
 manageResourceForEncryption(){
     #start encryption
 
@@ -13,9 +10,7 @@ manageResourceForEncryption(){
     operation=$3
 
     create_container $count $pass $operation
-    stop_service
     move_data_to_container $operation
-    start_service
     touch /var/etc/kerio/operator/pdenabled
     status='{"status":"encrypted"}'
     echo $status > /var/etc/kerio/operator/encryptionStatus
@@ -29,10 +24,8 @@ resize_increase(){
 
     #start increasing the volume size for calculate number of cylinder counts
 
-    stop_service
-
-    if  ! grep -qs '/var/personal_data/kerio/operator/' /proc/mounts; then
-        manage_reboot
+    if  ! grep -qs '/var/personal_data/kerio/operator' /proc/mounts; then
+        manage_reboot $pass
     fi
     
     unmount_resource $operation
@@ -53,7 +46,9 @@ sLog "$gtag $operation successful $command"
 
     mount /dev/mapper/luks /var/personal_data/kerio/operator/
 
-    start_service
+    /etc/boxinit.d/asterisk start
+    /etc/boxinit.d/firebird start
+    /etc/boxinit.d/ksyslog start
 
 }
 
@@ -63,18 +58,15 @@ resize_decrease(){
     operation=$3
 
     #start decreasing the volume size for calculate number of cylinder counts
-
-    stop_service
     
-    if [ ! grep -qs '/var/personal_data/kerio/operator/' /proc/mounts ]; then
-        manage_reboot
+    if  ! grep -qs '/var/personal_data/kerio/operator' /proc/mounts; then
+        manage_reboot $pass
     fi
 
     move_data_from_container $operation
     remove_container $operation
     create_container $block_count $pass $operation 
     move_data_to_container $operation
-    start_service
 
 }
 
@@ -82,10 +74,10 @@ manageResourceForDecryption(){
     #start decryption
     operation="$1"
 
-    stop_service
     move_data_from_container $operation
+    
     remove_container $operation
-    start_service
+
     rm -r /var/etc/kerio/operator/pdenabled
     command="rm -r /var/etc/kerio/operator/pdenabled"
     sLog "$gtag $operation successful $command"
@@ -97,6 +89,7 @@ sLog "$gtag $operation successful $command"
     status='{"status":"decrypted"}'
     echo $status > /var/etc/kerio/operator/encryptionStatus
     sLog "Personal data encryption is disabled."
+    /etc/boxinit.d/firebird start
 }
 
 create_container(){
@@ -129,46 +122,58 @@ sLog "$gtag $operation successful $command"
 
 move_data_to_container(){
     operation="$1" 
-   
-    cp -a /var/spool/asterisk/monitor/ /var/personal_data/kerio/operator/monitor/
-sLog "$gtag $operation successfully moved resource /var/spool/asterisk/monitor/" 
 
-    cp -a /var/spool/asterisk/voicemail/ /var/personal_data/kerio/operator/voicemail/
-sLog "$gtag $operation successfully moved resource /var/spool/asterisk/voicemail/" 
-
-    cp -a /var/operator/log /var/personal_data/kerio/operator/log
-sLog "$gtag $operation successfully moved resource /var/operator/log" 
-     
-    /etc/boxinit.d/firebird stop 
     
     if [ -f /var/lib/firebird/2.0/data/kts.fdb ]; then
-    mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
+        /etc/boxinit.d/firebird stop
+        mv /var/lib/firebird/2.0/data/kts.fdb /var/personal_data/kerio/operator/kts.fdb
 sLog "$gtag $operation successfully moved resource /var/lib/firebird/2.0/data/kts.fdb" 
-    fi 
-
-    rm -rf /var/spool/asterisk/monitor/
-    rm -rf /var/spool/asterisk/voicemail/
-    rm -rf /var/operator/log
+        ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+sLog "$gtag $operation successfully created symbolik link for /var/lib/firebird/2.0/data/kts.fdb" 
+        /etc/boxinit.d/firebird start
+    fi
+    
 
     
-    ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
-sLog "$gtag $operation successfully created symbolik link for /var/lib/firebird/2.0/data/kts.fdb" 
-    /etc/boxinit.d/firebird start
+    /etc/boxinit.d/asterisk stop
+    cp -a /var/spool/asterisk/monitor/ /var/personal_data/kerio/operator/monitor/
+sLog "$gtag $operation successfully moved resource /var/spool/asterisk/monitor/" 
+    
+    cp -a /var/spool/asterisk/voicemail/ /var/personal_data/kerio/operator/voicemail/
+sLog "$gtag $operation successfully moved resource /var/spool/asterisk/voicemail/" 
+     
+     rm -rf /var/spool/asterisk/monitor/
+     rm -rf /var/spool/asterisk/voicemail/
 
-    ln -s /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
+     ln -s /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
 sLog "$gtag $operation successfully created symbolik link for /var/spool/asterisk/monitor/" 
 
     ln -s /var/personal_data/kerio/operator/voicemail /var/spool/asterisk/voicemail
 sLog "$gtag $operation successfully created symbolik link for /var/spool/asterisk/voicemail/" 
+    /etc/boxinit.d/asterisk start
+     
+    /etc/boxinit.d/ksyslog stop
 
+    cp -a /var/operator/log /var/personal_data/kerio/operator/log
+    rm -rf /var/operator/log
     ln -s /var/personal_data/kerio/operator/log /var/operator/log
+
+    /etc/boxinit.d/ksyslog start
 sLog "$gtag $operation successfully created symbolik link for /var/operator/log" 
+sLog "$gtag $operation successfully moved resource /var/operator/log" 
 
 }
 
 unmount_resource(){
-        /etc/boxinit.d/ksyslog stop
-       sleep 1  
+  purpose="$1"
+  if [ "$purpose" != "Remove Container" ]; then
+        /etc/boxinit.d/asterisk stop
+        /etc/boxinit.d/firebird stop
+        pkill -9 fbserver
+        pkill -u asterisk
+        sleep 1
+  fi    
+       /etc/boxinit.d/ksyslog stop
        pkill -9 ksyslog
        error=$(umount /var/personal_data/kerio/operator 2>&1 || ! grep -qs '/var/personal_data/kerio/operator/' /proc/mounts)
        stat=$(echo $?)
@@ -191,33 +196,20 @@ unmount_resource(){
           if [ $1 == "Removing Container" ]; then
               move_data_to_container
           fi    
-          start_service
           exit 123
        else
           sLog "Unmounted the resourse successfully for $1" 
           echo "$(date '+%-d/%b/%Y %H:%M:%S')  Unmounted the resourse successfully for $1"  >> /root/encryp.log
-       fi
+       fi    
 }
 
 move_data_from_container(){
     operation=$1
+  
+    /etc/boxinit.d/asterisk stop
 
     unlink /var/spool/asterisk/monitor
     unlink /var/spool/asterisk/voicemail
-    unlink /var/operator/log
-    
-    /etc/boxinit.d/firebird stop
-
-    if [ -L /var/lib/firebird/2.0/data/kts.fdb ]; then
-       rm -f  /var/lib/firebird/2.0/data/kts.fdb
-    fi 
-   
-    if [ ! -f /var/lib/firebird/2.0/data/kts.fdb ]; then
-       mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
-    fi 
-    command="/var/lib/firebird/2.0/data/kts.fdb"
-sLog "$gtag $operation successfully moved resource $command"
-    /etc/boxinit.d/firebird start
 
     cp -a /var/personal_data/kerio/operator/monitor /var/spool/asterisk/monitor
     command="/var/spool/asterisk/monitor"
@@ -227,11 +219,30 @@ sLog "$gtag $operation successfully moved resource $command"
     command="/var/spool/asterisk/voicemail"
 sLog "$gtag $operation successfully moved resource $command"
 
+    /etc/boxinit.d/asterisk start
+   
+    /etc/boxinit.d/ksyslog stop
+
+    unlink /var/operator/log
     cp -a /var/personal_data/kerio/operator/log /var/operator/log
+
+    /etc/boxinit.d/ksyslog start
     command="/var/operator/log"
 sLog "$gtag $operation successfully moved resource $command"
+    /etc/boxinit.d/firebird stop
 
-    
+     if [ -L /var/lib/firebird/2.0/data/kts.fdb ]; then
+         unlink /var/lib/firebird/2.0/data/kts.fdb
+     fi 
+
+     if [ ! -f /var/lib/firebird/2.0/data/kts.fdb ]; then
+           mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+     fi 
+    /etc/boxinit.d/firebird start
+
+    command="/var/lib/firebird/2.0/data/kts.fdb"
+sLog "$gtag $operation successfully moved resource $command"
+
 }
 
 remove_container(){
@@ -260,14 +271,21 @@ sLog "$gtag $operation successful $command"
 
 manage_reboot(){
 pass=$1
-stop_service
 
 if [ -e /var/personal_data/kerio/operator/kts.fdb ]; then
-   unlink /var/lib/firebird/2.0/data/kts.fdb
-   mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+    
+    /etc/boxinit.d/firebird stop
+
+  if [ -L /var/lib/firebird/2.0/data/kts.fdb ]; then
+       rm -f  /var/lib/firebird/2.0/data/kts.fdb
+       mv /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
+  fi 
+
+    /etc/boxinit.d/firebird start
+
 elif [ ! -e /var/personal_data/kerio/operator/kts.fdb ] && [ -f /var/etc/kerio/operator/pdenabled ]; then
-   modprobe loop
    pass=$(cat /var/etc/kerio/operator/pdpassword)
+
    if [ ! -z "$pass" ]; then
        echo -n $pass|cryptsetup luksOpen /var/etc/kerio/operator/luks.container luks -
        mount /dev/mapper/luks /var/personal_data/kerio/operator/
@@ -276,29 +294,17 @@ elif [ ! -e /var/personal_data/kerio/operator/kts.fdb ] && [ -f /var/etc/kerio/o
        ln -s /var/personal_data/kerio/operator/kts.fdb /var/lib/firebird/2.0/data/kts.fdb
        /etc/boxinit.d/firebird start
    fi
+
 fi
 
-start_service
-
 }
-
-stop_service(){
-    /etc/boxinit.d/asterisk stop
-    echo "Stopping services"
-}
-
-start_service(){
-    /etc/boxinit.d/asterisk start
-    echo "starting services"
-}
-
 
 execute_actual(){
-
+modprobe loop
 action=$1
 
 if [[ ! -z "$2" ]]; then
-   volumeSize=$(expr $2 \* 3 + 1)
+   volumeSize=$(expr $2 \* 2 + 1)
 fi
 pfile='/var/etc/kerio/operator/pdpassword'
 password=$(cat $pfile 2>/dev/null)
@@ -316,10 +322,10 @@ elif [[ $action = 3 ]]; then
     test -f $pfile && resize_decrease $volumeSize $password "Resize:decrease"
 elif [[ $action = 1 ]]; then
     manageResourceForDecryption "Decryption"
+    modprobe -r loop
 elif [[ $action = "reboot" ]]; then
     manage_reboot $password
 fi
-
 }
 
 #date '+%-d/%b/%Y %H:%M:%S'
@@ -333,5 +339,5 @@ if [ ! -L /etc/boxrc.d/123manage_reboot ]; then
 fi 
 
 gtag='{Data Encryption}'
-execute_actual $1 $2 
+execute_actual $1 $2
 /etc/boxinit.d/ksyslog restart
